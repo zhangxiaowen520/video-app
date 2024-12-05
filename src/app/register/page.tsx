@@ -5,13 +5,15 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import BackButton from "@/components/BackButton";
-import { Eye, EyeOff, Wand2, Check, X } from "lucide-react";
+import { Eye, EyeOff, Wand2, Check, X, User, KeyRound, UserPlus } from "lucide-react";
+import { register } from "@/api/login";
 
 interface RegisterForm {
-  account: string;
-  nickname: string;
+  icon?: string;
+  username: string;
+  nickName: string;
   password: string;
-  confirmPassword: string;
+  confirmPassword?: string;
 }
 
 interface PasswordStrength {
@@ -33,8 +35,8 @@ interface AccountValidation {
 export default function RegisterPage() {
   const router = useRouter();
   const [form, setForm] = useState<RegisterForm>({
-    account: "",
-    nickname: "",
+    username: "",
+    nickName: "",
     password: "",
     confirmPassword: ""
   });
@@ -94,7 +96,7 @@ export default function RegisterPage() {
   };
 
   const validateForm = () => {
-    if (!form.account || !form.nickname || !form.password || !form.confirmPassword) {
+    if (!form.username || !form.nickName || !form.password || !form.confirmPassword) {
       setError("请填写所有字段");
       return false;
     }
@@ -113,7 +115,7 @@ export default function RegisterPage() {
       return false;
     }
 
-    if (form.nickname.length < 2 || form.nickname.length > 20) {
+    if (form.nickName.length < 2 || form.nickName.length > 20) {
       setError("昵称长度应在2-20个字符之间");
       return false;
     }
@@ -144,16 +146,17 @@ export default function RegisterPage() {
 
     try {
       setIsLoading(true);
-      // TODO: 实现注册逻辑
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-
-      // 注册成功后跳转到成功页面，并传递账号信息
-      const params = new URLSearchParams({
-        account: form.account,
-        nickname: form.nickname,
-        password: form.password
-      });
-      router.push(`/register/success?${params.toString()}`);
+      const res = await register(form);
+      if (res.code === 200) {
+        const params = new URLSearchParams({
+          username: form.username,
+          nickName: form.nickName,
+          password: form.password
+        }).toString();
+        router.push(`/register/success?${params}`);
+      } else {
+        setError("注册失败，请重试");
+      }
     } catch (err) {
       console.error("注册失败:", err);
       setError("注册失败，请重试");
@@ -166,19 +169,30 @@ export default function RegisterPage() {
     try {
       setIsLoading(true);
       // 生成随机账号信息
-      const randomAccount = `user${Math.floor(Math.random() * 1000000)}`;
-      const randomNickname = `用户${Math.floor(Math.random() * 1000000)}`;
+      const timestamp = Date.now();
+      const randomSuffix = Math.floor(Math.random() * 1000)
+        .toString()
+        .padStart(3, "0");
+      const randomAccount = `user${timestamp}${randomSuffix}`;
+      const randomNickname = `用户${timestamp.toString().slice(-6)}`;
       const randomPassword = Math.random().toString(36).slice(-8);
 
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-
-      // 注册成功后跳转到成功页面
-      const params = new URLSearchParams({
-        account: randomAccount,
-        nickname: randomNickname,
+      const res = await register({
+        username: randomAccount,
+        nickName: randomNickname,
         password: randomPassword
       });
-      router.push(`/register/success?${params.toString()}`);
+      if (res.code == 200) {
+        // 注册成功后跳转到成功页面
+        const params = new URLSearchParams({
+          username: randomAccount,
+          nickName: randomNickname,
+          password: randomPassword
+        });
+        router.push(`/register/success?${params}`);
+      } else {
+        setError("一键注册失败，请重试");
+      }
     } catch (err) {
       console.error("一键注册失败:", err);
       setError("一键注册失败，请重试");
@@ -196,28 +210,36 @@ export default function RegisterPage() {
         </div>
       </div>
 
-      <div className="pt-16 p-4">
+      <div className="pt-16 p-4 flex flex-col items-center">
         {error && (
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="p-3 rounded-lg bg-red-500/10 text-red-500 text-sm mb-4">
+            className="w-full max-w-sm p-3 rounded-lg bg-red-500/10 text-red-500 text-sm mb-4">
             {error}
           </motion.div>
         )}
 
         {/* 一键注册按钮 */}
         <motion.button
+          initial={{ y: 20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
           onClick={handleQuickRegister}
           disabled={isLoading}
-          className="w-full flex items-center justify-center gap-2 py-3 mb-6 rounded-lg bg-primary/10 text-primary hover:bg-primary/20">
-          <Wand2 size={20} />
-          <span>一键注册</span>
+          className="w-full max-w-sm flex items-center justify-center gap-2 py-3 mb-6 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 relative overflow-hidden">
+          <motion.div
+            className="absolute inset-0 bg-gradient-to-r from-transparent via-primary/10 to-transparent"
+            initial={{ x: "-100%" }}
+            whileHover={{ x: "100%" }}
+            transition={{ duration: 0.5 }}
+          />
+          <Wand2 size={18} />
+          <span className="relative">一键注册</span>
         </motion.button>
 
-        <div className="relative mb-6">
+        <div className="relative w-full max-w-sm mb-6">
           <div className="absolute inset-0 flex items-center">
             <div className="w-full border-t"></div>
           </div>
@@ -226,200 +248,248 @@ export default function RegisterPage() {
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <label className="text-sm text-muted-foreground">账号</label>
-            <input
-              type="text"
-              value={form.account}
-              onChange={(e) => {
-                setForm((prev) => ({ ...prev, account: e.target.value }));
-                checkAccountValidation(e.target.value);
-              }}
-              placeholder="请输入账号（4-20位字母或数字）"
-              className={`w-full p-2 rounded-lg bg-muted ${
-                form.account && accountValidation.hasSpecialChar ? "border-red-500 border" : ""
-              }`}
-              disabled={isLoading}
-            />
-
-            {/* 账号验证提示 */}
-            {form.account && (
-              <div className="space-y-1 text-xs">
-                <div className="flex items-center gap-1">
-                  {accountValidation.isLengthValid ? (
-                    <Check size={12} className="text-green-500" />
-                  ) : (
-                    <X size={12} className="text-red-500" />
-                  )}
-                  <span>长度在4-20位之间</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  {!accountValidation.hasSpecialChar ? (
-                    <Check size={12} className="text-green-500" />
-                  ) : (
-                    <X size={12} className="text-red-500" />
-                  )}
-                  <span>只能包含字母和数字</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  {accountValidation.hasNumber || accountValidation.hasLowerCase || accountValidation.hasUpperCase ? (
-                    <Check size={12} className="text-green-500" />
-                  ) : (
-                    <X size={12} className="text-red-500" />
-                  )}
-                  <span>至少包含字母或数字</span>
-                </div>
-              </div>
-            )}
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-sm text-muted-foreground">昵称</label>
-            <input
-              type="text"
-              value={form.nickname}
-              onChange={(e) => setForm((prev) => ({ ...prev, nickname: e.target.value }))}
-              placeholder="请输入昵称"
-              className="w-full p-2 rounded-lg bg-muted"
-              disabled={isLoading}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-sm text-muted-foreground">密码</label>
-            <div className="relative">
+        <motion.form
+          initial={{ y: 20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.2 }}
+          onSubmit={handleSubmit}
+          className="w-full max-w-sm space-y-6">
+          <div className="space-y-4">
+            <motion.div
+              initial={{ x: -20, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              transition={{ delay: 0.3 }}
+              className="space-y-2">
+              <label className="text-sm text-muted-foreground flex items-center gap-2">
+                <User size={16} className="text-primary" />
+                账号
+              </label>
               <input
-                type={showPasswords.password ? "text" : "password"}
-                value={form.password}
+                type="text"
+                value={form.username}
                 onChange={(e) => {
-                  setForm((prev) => ({ ...prev, password: e.target.value }));
-                  checkPasswordStrength(e.target.value);
+                  setForm((prev) => ({ ...prev, username: e.target.value }));
+                  checkAccountValidation(e.target.value);
                 }}
-                placeholder="请输入密码"
-                className="w-full p-2 pr-10 rounded-lg bg-muted"
+                placeholder="请输入账号（4-20位字母或数字）"
+                className="w-full p-3 rounded-lg bg-muted/50 border border-muted-foreground/20 focus:border-primary/50 focus:bg-muted transition-colors outline-none"
                 disabled={isLoading}
               />
-              <button
-                type="button"
-                onClick={() =>
-                  setShowPasswords((prev) => ({
-                    ...prev,
-                    password: !prev.password
-                  }))
-                }
-                className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-muted-foreground/20 rounded-full">
-                {showPasswords.password ? (
-                  <EyeOff size={16} className="text-muted-foreground" />
-                ) : (
-                  <Eye size={16} className="text-muted-foreground" />
-                )}
-              </button>
-            </div>
+              {form.username && (
+                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-1 text-xs">
+                  <div className="flex items-center gap-1">
+                    {accountValidation.isLengthValid ? (
+                      <Check size={12} className="text-green-500" />
+                    ) : (
+                      <X size={12} className="text-red-500" />
+                    )}
+                    <span>长度在4-20位之间</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    {!accountValidation.hasSpecialChar ? (
+                      <Check size={12} className="text-green-500" />
+                    ) : (
+                      <X size={12} className="text-red-500" />
+                    )}
+                    <span>只能包含字母和数字</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    {accountValidation.hasNumber || accountValidation.hasLowerCase || accountValidation.hasUpperCase ? (
+                      <Check size={12} className="text-green-500" />
+                    ) : (
+                      <X size={12} className="text-red-500" />
+                    )}
+                    <span>至少包含字��或数字</span>
+                  </div>
+                </motion.div>
+              )}
+            </motion.div>
 
-            {/* 密码强度指示器 */}
-            {form.password && (
-              <div className="space-y-2">
-                <div className="h-1 rounded-full bg-muted overflow-hidden">
-                  <motion.div
-                    className={`h-full ${getPasswordStrengthColor()}`}
-                    initial={{ width: "0%" }}
-                    animate={{ width: `${(getPasswordStrengthScore() / 5) * 100}%` }}
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-2 text-xs">
-                  <div className="flex items-center gap-1">
-                    {passwordStrength.hasNumber ? (
-                      <Check size={12} className="text-green-500" />
-                    ) : (
-                      <X size={12} className="text-red-500" />
-                    )}
-                    <span>包含数字</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    {passwordStrength.hasLowerCase ? (
-                      <Check size={12} className="text-green-500" />
-                    ) : (
-                      <X size={12} className="text-red-500" />
-                    )}
-                    <span>包含小写字母</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    {passwordStrength.hasUpperCase ? (
-                      <Check size={12} className="text-green-500" />
-                    ) : (
-                      <X size={12} className="text-red-500" />
-                    )}
-                    <span>包含大写字母</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    {passwordStrength.hasSpecialChar ? (
-                      <Check size={12} className="text-green-500" />
-                    ) : (
-                      <X size={12} className="text-red-500" />
-                    )}
-                    <span>包含特殊字符</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    {passwordStrength.isLengthValid ? (
-                      <Check size={12} className="text-green-500" />
-                    ) : (
-                      <X size={12} className="text-red-500" />
-                    )}
-                    <span>长度不少于8位</span>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-sm text-muted-foreground">确认密码</label>
-            <div className="relative">
+            <motion.div
+              initial={{ x: -20, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              transition={{ delay: 0.4 }}
+              className="space-y-2">
+              <label className="text-sm text-muted-foreground flex items-center gap-2">
+                <UserPlus size={16} className="text-primary" />
+                昵称
+              </label>
               <input
-                type={showPasswords.confirm ? "text" : "password"}
-                value={form.confirmPassword}
-                onChange={(e) => setForm((prev) => ({ ...prev, confirmPassword: e.target.value }))}
-                placeholder="请再次输入密码"
-                className="w-full p-2 pr-10 rounded-lg bg-muted"
+                type="text"
+                value={form.nickName}
+                onChange={(e) => setForm((prev) => ({ ...prev, nickName: e.target.value }))}
+                placeholder="请输入昵称"
+                className="w-full p-3 rounded-lg bg-muted/50 border border-muted-foreground/20 focus:border-primary/50 focus:bg-muted transition-colors outline-none"
                 disabled={isLoading}
               />
-              <button
-                type="button"
-                onClick={() =>
-                  setShowPasswords((prev) => ({
-                    ...prev,
-                    confirm: !prev.confirm
-                  }))
-                }
-                className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-muted-foreground/20 rounded-full">
-                {showPasswords.confirm ? (
-                  <EyeOff size={16} className="text-muted-foreground" />
-                ) : (
-                  <Eye size={16} className="text-muted-foreground" />
-                )}
-              </button>
+            </motion.div>
+
+            <motion.div
+              initial={{ x: -20, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              transition={{ delay: 0.5 }}
+              className="space-y-2">
+              <label className="text-sm text-muted-foreground flex items-center gap-2">
+                <KeyRound size={16} className="text-primary" />
+                密码
+              </label>
+              <div className="relative">
+                <input
+                  type={showPasswords.password ? "text" : "password"}
+                  value={form.password}
+                  onChange={(e) => {
+                    setForm((prev) => ({ ...prev, password: e.target.value }));
+                    checkPasswordStrength(e.target.value);
+                  }}
+                  placeholder="请输入密码"
+                  className="w-full p-3 rounded-lg bg-muted/50 border border-muted-foreground/20 focus:border-primary/50 focus:bg-muted transition-colors outline-none"
+                  disabled={isLoading}
+                />
+                <button
+                  type="button"
+                  onClick={() =>
+                    setShowPasswords((prev) => ({
+                      ...prev,
+                      password: !prev.password
+                    }))
+                  }
+                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-muted-foreground/20 rounded-full">
+                  {showPasswords.password ? (
+                    <EyeOff size={16} className="text-muted-foreground" />
+                  ) : (
+                    <Eye size={16} className="text-muted-foreground" />
+                  )}
+                </button>
+              </div>
+              {form.password && (
+                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-2">
+                  <div className="h-1 rounded-full bg-muted overflow-hidden">
+                    <motion.div
+                      className={`h-full ${getPasswordStrengthColor()}`}
+                      initial={{ width: "0%" }}
+                      animate={{ width: `${(getPasswordStrengthScore() / 5) * 100}%` }}
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div className="flex items-center gap-1">
+                      {passwordStrength.hasNumber ? (
+                        <Check size={12} className="text-green-500" />
+                      ) : (
+                        <X size={12} className="text-red-500" />
+                      )}
+                      <span>包含数字</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      {passwordStrength.hasLowerCase ? (
+                        <Check size={12} className="text-green-500" />
+                      ) : (
+                        <X size={12} className="text-red-500" />
+                      )}
+                      <span>包含小写字母</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      {passwordStrength.hasUpperCase ? (
+                        <Check size={12} className="text-green-500" />
+                      ) : (
+                        <X size={12} className="text-red-500" />
+                      )}
+                      <span>包含大写字母</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      {passwordStrength.hasSpecialChar ? (
+                        <Check size={12} className="text-green-500" />
+                      ) : (
+                        <X size={12} className="text-red-500" />
+                      )}
+                      <span>包含特殊字符</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      {passwordStrength.isLengthValid ? (
+                        <Check size={12} className="text-green-500" />
+                      ) : (
+                        <X size={12} className="text-red-500" />
+                      )}
+                      <span>长度不少于8位</span>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </motion.div>
+
+            <motion.div
+              initial={{ x: -20, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              transition={{ delay: 0.6 }}
+              className="space-y-2">
+              <label className="text-sm text-muted-foreground flex items-center gap-2">
+                <KeyRound size={16} className="text-primary" />
+                确认密码
+              </label>
+              <div className="relative">
+                <input
+                  type={showPasswords.confirm ? "text" : "password"}
+                  value={form.confirmPassword}
+                  onChange={(e) => setForm((prev) => ({ ...prev, confirmPassword: e.target.value }))}
+                  placeholder="请再次输入密码"
+                  className="w-full p-3 rounded-lg bg-muted/50 border border-muted-foreground/20 focus:border-primary/50 focus:bg-muted transition-colors outline-none"
+                  disabled={isLoading}
+                />
+                <button
+                  type="button"
+                  onClick={() =>
+                    setShowPasswords((prev) => ({
+                      ...prev,
+                      confirm: !prev.confirm
+                    }))
+                  }
+                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-muted-foreground/20 rounded-full">
+                  {showPasswords.confirm ? (
+                    <EyeOff size={16} className="text-muted-foreground" />
+                  ) : (
+                    <Eye size={16} className="text-muted-foreground" />
+                  )}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+
+          <motion.div
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.7 }}
+            className="space-y-4">
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              type="submit"
+              disabled={isLoading}
+              className={`w-full py-3 rounded-lg relative overflow-hidden ${
+                isLoading ? "bg-muted text-muted-foreground" : "bg-primary text-primary-foreground"
+              }`}>
+              <motion.div
+                className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
+                initial={{ x: "-100%" }}
+                whileHover={{ x: "100%" }}
+                transition={{ duration: 0.5 }}
+              />
+              <span className="relative flex items-center justify-center gap-2">
+                <UserPlus size={18} />
+                {isLoading ? "注册中..." : "注册"}
+              </span>
+            </motion.button>
+
+            <div className="flex justify-between text-sm">
+              <motion.div whileHover={{ x: 3 }}>
+                <Link href="/login" className="text-primary hover:underline inline-flex items-center gap-1">
+                  已有账号？立即登录
+                  <motion.span animate={{ x: [0, 3, 0] }} transition={{ duration: 1.5, repeat: Infinity }}>
+                    →
+                  </motion.span>
+                </Link>
+              </motion.div>
             </div>
-          </div>
-
-          <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            type="submit"
-            disabled={isLoading}
-            className={`w-full py-2 rounded-lg ${
-              isLoading ? "bg-muted text-muted-foreground" : "bg-primary text-primary-foreground"
-            }`}>
-            {isLoading ? "注册中..." : "注册"}
-          </motion.button>
-
-          <div className="text-center text-sm">
-            <span className="text-muted-foreground">已有账号？</span>
-            <Link href="/login" className="ml-1 text-primary hover:underline">
-              立即登录
-            </Link>
-          </div>
-        </form>
+          </motion.div>
+        </motion.form>
       </div>
     </div>
   );

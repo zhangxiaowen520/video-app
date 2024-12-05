@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { Trash2 } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useInView } from "react-intersection-observer";
 import BackButton from "@/components/BackButton";
 
@@ -47,9 +47,11 @@ export default function HistoryPage() {
   }, [loading, hasMore, historyList.length]);
 
   // 监听滚动到底部
-  if (inView) {
-    loadMore();
-  }
+  useEffect(() => {
+    if (inView) {
+      loadMore();
+    }
+  }, [inView, loadMore]);
 
   return (
     <div className="min-h-screen pb-16">

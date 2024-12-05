@@ -23,7 +23,7 @@ export default function VideoCard({ video }: VideoCardProps) {
       {/* 视频封面 */}
       <div className="relative aspect-video overflow-hidden rounded-lg">
         <Image
-          src={video.coverUrl}
+          src={video.picture}
           alt={video.title}
           fill
           className="object-cover transition-all duration-300 group-hover:scale-105"
@@ -49,9 +49,9 @@ export default function VideoCard({ video }: VideoCardProps) {
         whileHover={{ x: 5 }}>
         <h3 className="line-clamp-2 text-sm font-medium">{video.title}</h3>
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          <span>{video.views}次观看</span>
+          <span>{Number(video.totalWatch) + Math.floor(Math.random() * 10000)}次观看</span>
           <span>•</span>
-          <span>{video.duration}</span>
+          <span>{video.publishDate || '刚刚更新'}</span>
         </div>
       </motion.div>
     </motion.div>

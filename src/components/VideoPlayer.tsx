@@ -6,14 +6,14 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 import Plyr from "plyr";
 import "plyr/dist/plyr.css";
+import storageService from "@/utils/storageService";
 
 interface VideoPlayerProps {
   src: string;
   poster?: string;
-  isVip?: boolean;
 }
 
-export default function VideoPlayer({ src, poster, isVip = false }: VideoPlayerProps) {
+export default function VideoPlayer({ src, poster }: VideoPlayerProps) {
   const router = useRouter();
   const videoRef = useRef<HTMLVideoElement>(null);
   const playerRef = useRef<Plyr>();
@@ -22,20 +22,34 @@ export default function VideoPlayer({ src, poster, isVip = false }: VideoPlayerP
   const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
-    // 确保组件已经挂载并且video元素存在
+    // 获取VIP状态
+    const isVip = storageService.isVip();
+
+    // 非VIP用户限制观看时长
     if (!videoRef.current) return;
 
     // 延迟初始化Plyr，确保DOM已经完全准备好
     const timer = setTimeout(() => {
       try {
-        // 初始化Plyr
+        // 初始化Plyr，非会员移除全屏按钮
         const player = new Plyr(videoRef.current!, {
-          controls: ["play-large", "play", "progress", "current-time", "mute", "volume", "fullscreen"],
+          controls: isVip
+            ? ["play-large", "play", "progress", "current-time", "mute", "volume", "fullscreen"]
+            : ["play-large", "play", "progress", "current-time", "mute", "volume"],
           hideControls: true,
           keyboard: { focused: true, global: true }
         });
 
         playerRef.current = player;
+
+        // 非会员禁用键盘快捷键进入全屏
+        if (!isVip) {
+          document.addEventListener("keydown", (event: KeyboardEvent) => {
+            if (event.key === "f" || event.key === "F") {
+              event.preventDefault();
+            }
+          });
+        }
 
         // 监听时间更新
         player.on("timeupdate", () => {
@@ -75,19 +89,19 @@ export default function VideoPlayer({ src, poster, isVip = false }: VideoPlayerP
         playerRef.current.destroy();
       }
     };
-  }, [isVip]);
+  }, []);
 
   return (
     <div className="relative group plyr-custom">
       {/* 非会员剩余时间提示 */}
-      {!isVip && !showVipModal && remainingTime < 30 && (
+      {!storageService.isVip() && !showVipModal && remainingTime < 30 && (
         <div className="absolute top-4 right-4 px-3 py-1 rounded-full bg-black/60 text-white text-sm z-50">
           剩余试看时间：{remainingTime}秒
         </div>
       )}
 
       {/* 视频播放器 */}
-      <div className={`w-full aspect-video ${!isReady ? 'bg-muted' : ''}`}>
+      <div className={`w-full aspect-video ${!isReady ? "bg-muted" : ""}`}>
         <video ref={videoRef} poster={poster} className="w-full h-full">
           <source src={src} type="video/mp4" />
         </video>
@@ -122,7 +136,12 @@ export default function VideoPlayer({ src, poster, isVip = false }: VideoPlayerP
                   onClick={() => {
                     setShowVipModal(false);
                     if (playerRef.current) {
-                      playerRef.current.play();
+                      // 先将播放时间设置到稍早一点的位置（比如29秒）
+                      playerRef.current.currentTime = 1;
+                      // 短暂延迟后开始播放
+                      setTimeout(() => {
+                        playerRef.current?.play();
+                      }, 100);
                     }
                   }}
                   className="w-full py-1.5 text-xs text-muted-foreground hover:text-foreground">

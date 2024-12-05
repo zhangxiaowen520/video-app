@@ -4,6 +4,8 @@ import { ChangeEvent, useRef } from "react";
 import { Camera } from "lucide-react";
 import Image from "next/image";
 import { motion } from "framer-motion";
+import { BASE_URL } from "@/api/request";
+import storageService from "@/utils/storageService";
 
 interface ImageUploadProps {
   value: string;
@@ -19,20 +21,41 @@ export default function ImageUpload({ value, onChange, disabled }: ImageUploadPr
     inputRef.current?.click();
   };
 
-  const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
+  const handleChange = async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (file.size > 5 * 1024 * 1024) {
-      alert("图片大小不能超过5MB");
+    if (file.size > 2 * 1024 * 1024) {
+      alert("图片大小不能超过2MB");
       return;
     }
 
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      onChange(reader.result as string);
-    };
-    reader.readAsDataURL(file);
+    try {
+      // 创建 FormData 对象
+      const formData = new FormData();
+      formData.append("file", file);
+
+      // 发送图片到服务器
+      const response = await fetch(`${BASE_URL}/aliyun/oss/upload`, {
+        method: "POST",
+        body: formData,
+        headers: {
+          Authorization: storageService.getToken() || ""
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error("上传失败");
+      }
+
+      const data = await response.json();
+
+      // 假设服务器返回的数据中包含图片URL
+      onChange(data.data);
+    } catch (error) {
+      console.error("上传错误:", error);
+      alert("图片上传失败，请重试");
+    }
   };
 
   return (

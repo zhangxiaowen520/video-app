@@ -2,27 +2,39 @@
 
 import { motion } from "framer-motion";
 import { Copy, Check } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import ImageUpload from "@/components/ImageUpload";
 import BackButton from "@/components/BackButton";
+import storageService, { UserInfo } from "@/utils/storageService";
+import { getUserInfo, saveUserInfo } from "@/api/login";
+import { useRouter } from "next/navigation";
 
 export default function ProfileInfoPage() {
-  const [userInfo, setUserInfo] = useState({
-    account: "13800138000",
-    avatar: "https://picsum.photos/200",
-    nickname: "用户昵称",
-    // gender: "保密",
-    bio: "这个人很懒，什么都没有写~"
-  });
+  const router = useRouter();
+
+  const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [copied, setCopied] = useState(false);
+
+  const getUserInfoClick = async () => {
+    try {
+      const res = await getUserInfo();
+      if (res.code === 200) {
+        storageService.setUserInfo(res.data);
+        router.push("/profile");
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  };
 
   const handleSave = async () => {
     try {
       setIsSaving(true);
-      // TODO: 调用API保存用户信息
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      alert("保存成功");
+      const data = await saveUserInfo({ ...userInfo } as API.UserInfoType);
+      if (data.code === 200) {
+        getUserInfoClick();
+      }
     } catch (error) {
       console.error("保存失败:", error);
       alert("保存失败，请重试");
@@ -33,13 +45,20 @@ export default function ProfileInfoPage() {
 
   const copyAccount = async () => {
     try {
-      await navigator.clipboard.writeText(userInfo.account);
+      await navigator.clipboard.writeText(userInfo?.username || "");
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch (err) {
       console.error("复制失败:", err);
     }
   };
+
+  useEffect(() => {
+    const userInfo = storageService.getUserInfo();
+    if (userInfo) {
+      setUserInfo(userInfo);
+    }
+  }, []);
 
   return (
     <div className="min-h-screen pb-16">
@@ -70,24 +89,24 @@ export default function ProfileInfoPage() {
           animate={{ opacity: 1, y: 0 }}
           className="flex flex-col items-center gap-4">
           <ImageUpload
-            value={userInfo.avatar}
-            onChange={(value) => setUserInfo((prev) => ({ ...prev, avatar: value }))}
+            value={userInfo?.icon || "https://picsum.photos/200"}
+            onChange={(value) => setUserInfo((prev) => (prev ? { ...prev, icon: value } : null))}
             disabled={isSaving}
           />
-          <p className="text-xs text-muted-foreground">点击更换头像（不超过5MB）</p>
+          <p className="text-xs text-muted-foreground">点击更换头像（不超过2MB）</p>
         </motion.div>
 
         {/* 表单 */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
           {/* 账号字段 - 只读 */}
           <div className="space-y-2">
-            <label className="text-sm text-muted-foreground">账号</label>
+            <label className="text-sm font-medium">账号</label>
             <div className="flex items-center gap-2">
               <input
                 type="text"
-                value={userInfo.account}
+                value={userInfo?.username}
                 readOnly
-                className="flex-1 p-2 rounded-lg bg-muted/50 cursor-default"
+                className="flex-1 p-3 rounded-lg bg-muted border-2 border-transparent focus:bg-background focus:border-primary/50 focus:outline-none transition-all"
               />
               <motion.button
                 whileHover={{ scale: 1.05 }}
@@ -99,25 +118,49 @@ export default function ProfileInfoPage() {
             </div>
           </div>
 
+          {/* <div className="space-y-2">
+            <label className="text-sm font-medium">入驻时间</label>
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                value={userInfo?.createTime}
+                readOnly
+                className="flex-1 p-3 rounded-lg bg-muted border-2 border-transparent focus:bg-background focus:border-primary/50 focus:outline-none transition-all"
+              />
+            </div>
+          </div> */}
+
           <div className="space-y-2">
-            <label className="text-sm text-muted-foreground">昵称</label>
+            <label className="text-sm font-medium">昵称</label>
             <input
               type="text"
-              value={userInfo.nickname}
-              onChange={(e) => setUserInfo((prev) => ({ ...prev, nickname: e.target.value }))}
+              value={userInfo?.nickName}
+              onChange={(e) => {
+                const value = e.target.value;
+                if (value.length <= 8) {
+                  setUserInfo((prev) => (prev ? { ...prev, nickName: value } : null));
+                }
+              }}
+              minLength={2}
+              maxLength={8}
               disabled={isSaving}
-              className="w-full p-2 rounded-lg bg-muted"
+              className="w-full p-3 rounded-lg bg-muted border-2 border-transparent focus:bg-background focus:border-primary/50 focus:outline-none transition-all"
+              placeholder="请输入昵称"
             />
+            <p className="text-xs text-muted-foreground">
+              {userInfo?.nickName ? `${userInfo.nickName.length}/8` : "0/8"} (2-8个字符)
+            </p>
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm text-muted-foreground">个人简介</label>
+            <label className="text-sm font-medium">个人简介</label>
             <textarea
-              value={userInfo.bio}
-              onChange={(e) => setUserInfo((prev) => ({ ...prev, bio: e.target.value }))}
+              value={userInfo?.note ?? "这个人什么也没留，请写点什么吧..."}
+              onChange={(e) => setUserInfo((prev) => (prev ? { ...prev, note: e.target.value } : null))}
               disabled={isSaving}
               rows={4}
-              className="w-full p-2 rounded-lg bg-muted resize-none"
+              className="w-full p-3 rounded-lg bg-muted border-2 border-transparent focus:bg-background focus:border-primary/50 focus:outline-none transition-all resize-none"
+              placeholder="请输入个人简介"
             />
           </div>
         </motion.div>

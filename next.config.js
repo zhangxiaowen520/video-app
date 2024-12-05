@@ -1,12 +1,14 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  reactStrictMode: false,
   images: {
     remotePatterns: [
       {
         protocol: "https",
-        hostname: "picsum.photos"
+        hostname: "**"
       }
-    ]
+    ],
+    domains: ["*"]
   },
   typescript: {
     // 构建时忽略 TypeScript 类型错误

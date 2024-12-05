@@ -100,11 +100,11 @@ export default function VipPromotion() {
               color: ["hsl(var(--foreground))", "hsl(48, 100%, 50%)", "hsl(var(--foreground))"]
             }}
             transition={{ duration: 3, repeat: Infinity }}>
-            开通会员享高清无广告
+            开通会员观看完整视频
             <Star className="w-4 h-4 text-yellow-500" />
           </motion.h3>
           <div className="flex items-center gap-2 mt-1">
-            <span className="text-sm text-yellow-500 font-medium">首月仅需9.9元</span>
+            <span className="text-sm text-yellow-500 font-medium">尊贵会员</span>
             <motion.span
               className="text-xs px-2 py-0.5 rounded-full bg-yellow-500/10 text-yellow-500 border border-yellow-500/20"
               animate={{ scale: [1, 1.05, 1] }}

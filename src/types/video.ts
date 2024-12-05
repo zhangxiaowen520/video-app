@@ -1,11 +1,12 @@
 export interface Video {
-  id: string;
+  id: number;
+  longUrl: string | null;
+  picture: string;
+  publishDate: string | null;
+  reduce: string | null;
+  shortUrl: string;
+  status: number;
+  tags: string;
   title: string;
-  description: string;
-  coverUrl: string;
-  videoUrl: string;
-  views: number;
-  duration: string;
-  createdAt: string;
-  tags: string[];
+  totalWatch: number | null;
 }

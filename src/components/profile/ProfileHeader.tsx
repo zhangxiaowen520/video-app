@@ -3,12 +3,9 @@
 import { motion } from "framer-motion";
 import Image from "next/image";
 import { Crown } from "lucide-react";
+import { UserInfo } from "@/utils/storageService";
 
-interface ProfileHeaderProps {
-  isVip?: boolean;
-}
-
-export default function ProfileHeader({ isVip = true }: ProfileHeaderProps) {
+export default function ProfileHeader({ userInfo, isVip }: { userInfo: UserInfo | null; isVip: boolean }) {
   return (
     <motion.div
       initial={{ opacity: 0, y: -20 }}
@@ -50,7 +47,7 @@ export default function ProfileHeader({ isVip = true }: ProfileHeaderProps) {
             {/* 头像 */}
             <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="relative w-20 h-20">
               <Image
-                src="https://picsum.photos/200"
+                src={userInfo?.icon || "https://picsum.photos/200"}
                 alt="头像"
                 fill
                 className="rounded-full object-cover border-4 border-background dark:border-background"
@@ -80,7 +77,7 @@ export default function ProfileHeader({ isVip = true }: ProfileHeaderProps) {
 
           <div>
             <div className="flex items-center gap-2">
-              <h2 className="text-xl font-bold">用户昵称</h2>
+              <h2 className="text-xl font-bold">{userInfo?.nickName}</h2>
               {/* VIP标签 */}
               {isVip && (
                 <motion.span

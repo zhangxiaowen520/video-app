@@ -3,37 +3,82 @@
 import { motion } from "framer-motion";
 import { Crown, Check, Sparkles, Star } from "lucide-react";
 import BackButton from "@/components/BackButton";
+import { getMemberList } from "@/api/api";
+import { useEffect, useState } from "react";
 
-const vipPlans = [
-  {
-    id: "yearly",
-    name: "年度会员",
-    price: "298",
-    duration: "每年",
-    features: ["无限观看", "1080P高清", "去除广告", "优先更新", "专属客服", "尊享标识"],
-    originalPrice: "540",
-    bestValue: true
-  },
-  {
-    id: "quarterly",
-    name: "季度会员",
-    price: "78",
-    duration: "每季",
-    features: ["无限观看", "1080P高清", "去除广告", "优先更新", "专属客服"],
-    originalPrice: "135",
-    recommended: true
-  },
-  {
-    id: "monthly",
-    name: "月度会员",
-    price: "30",
-    duration: "每月",
-    features: ["无限观看", "1080P高清", "去除广告", "优先更新"],
-    originalPrice: "45"
-  }
-];
+type VipPlan = {
+  id: string;
+  name: string;
+  price: string;
+  duration: string;
+  features: string[];
+  originalPrice: string;
+  recommended: boolean;
+  bestValue: boolean;
+};
 
 export default function VipPage() {
+  const [vipPlans, setVipPlans] = useState<VipPlan[]>([]);
+
+  const getMemberListClick = async () => {
+    try {
+      const res = await getMemberList();
+      if (res.code === 200) {
+        // 转换接口数据为VipPlan格式
+        const plans = res.data.map((item: { price: number; memberType: number }) => {
+          const planInfo = {
+            id: "",
+            name: "",
+            price: item.price.toString(),
+            duration: "",
+            features: ["无限观看", "1080P高清", "去除广告", "优先更新"],
+            originalPrice: (Number(item.price) * 1.8).toFixed(0), // 原价设为实际价格的1.8倍
+            recommended: false,
+            bestValue: false
+          };
+          // 根据会员类型设置相应信息
+          switch (item.memberType) {
+            case 0:
+              planInfo.id = "monthly";
+              planInfo.name = "月度会员";
+              planInfo.duration = "每月";
+              break;
+            case 1:
+              planInfo.id = "quarterly";
+              planInfo.name = "季度会员";
+              planInfo.duration = "每季";
+              planInfo.recommended = true;
+              planInfo.features.push("专属客服");
+              break;
+            case 2:
+              planInfo.id = "yearly";
+              planInfo.name = "年度会员";
+              planInfo.duration = "每年";
+              planInfo.bestValue = true;
+              planInfo.features.push("专属客服", "尊享标识");
+              break;
+          }
+
+          return planInfo;
+        });
+
+        // 按会员类型排序：年度 > 季度 > 月度
+        plans.sort((a: { id: string }, b: { id: string }) => {
+          const order = { yearly: 0, quarterly: 1, monthly: 2 };
+          return order[a.id as keyof typeof order] - order[b.id as keyof typeof order];
+        });
+
+        setVipPlans(plans);
+      }
+    } catch (error) {
+      console.error("获取会员列表失败:", error);
+    }
+  };
+
+  useEffect(() => {
+    getMemberListClick();
+  }, []);
+
   return (
     <div className="min-h-screen pb-16">
       {/* 顶部导航 */}
@@ -132,7 +177,7 @@ export default function VipPage() {
                 <h3 className="text-lg font-medium">{plan.name}</h3>
                 <div className="space-y-1">
                   <div className="flex items-baseline gap-2">
-                    <span className="text-3xl font-bold">{plan.bestValue && "¥"}</span>
+                    <span className="text-3xl font-bold">¥</span>
                     <span className={`text-3xl font-bold ${plan.bestValue ? "text-yellow-500" : ""}`}>
                       {plan.price}
                     </span>
@@ -179,7 +224,7 @@ export default function VipPage() {
           <ul className="list-disc list-inside space-y-1 pl-1">
             <li>会员服务在支付成功后立即生效</li>
             <li>购买会员服务即表示同意《会员服务协议》</li>
-            <li>系统将在会员到期前自动续费，可随时取消</li>
+            <li>会员可以累计购买，时间叠加，但仅限一个账号使用</li>
             <li>如有其他问题，请联系客服</li>
           </ul>
         </div>

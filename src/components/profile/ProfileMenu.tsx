@@ -4,6 +4,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Crown, User, History, CreditCard, LogOut, Lock, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import storageService from "@/utils/storageService";
+import { logout } from "@/api/login";
 
 const menuItems = [
   {
@@ -39,10 +41,18 @@ export default function ProfileMenu() {
   const router = useRouter();
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
-  const handleLogout = () => {
-    // TODO: 实现退出登录逻辑
-    console.log("退出登录");
-    router.push("/login");
+  const handleLogout = async () => {
+    try {
+      const data = await logout();
+      if (data.code === 200) {
+        storageService.clearAll();
+        router.push("/login");
+      } else {
+        console.error(data.message);
+      }
+    } catch (error) {
+      console.error("退出登录失败:", error);
+    }
   };
 
   return (

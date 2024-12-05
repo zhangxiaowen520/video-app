@@ -1,8 +1,14 @@
+"use client";
+
 import VideoPlayer from "@/components/VideoPlayer";
 import VipPromotion from "@/components/VipPromotion";
 import BackButton from "@/components/BackButton";
+import { getVideoDetail } from "@/api/api";
+import { useEffect } from "react";
 
-export default function VideoPage({ params }: { params: { id: string } }) {
+export default function VideoPage({ params }: { params: { id: number } }) {
+  // const [video, setVideo] = useState<Video | null>(null);
+
   const video = {
     id: params.id,
     title: "示例视频1 - 这是一个较长的标题，用来测试多行显示效果",
@@ -15,7 +21,19 @@ export default function VideoPage({ params }: { params: { id: string } }) {
     tags: ["娱乐", "音乐"]
   };
 
-  const isVip = false;
+  const getVideoDetailClick = async () => {
+    const res = await getVideoDetail({ id: Number(params.id) });
+    if (res.code === 200) {
+      console.log(res.data);
+    }
+  };
+
+  useEffect(() => {
+    if (params.id) {
+      getVideoDetailClick();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [params.id]);
 
   if (!video) {
     return <div>视频不存在</div>;
@@ -30,7 +48,7 @@ export default function VideoPage({ params }: { params: { id: string } }) {
       </div>
 
       <div className="pt-14">
-        <VideoPlayer src={video.videoUrl} poster={video.coverUrl} isVip={isVip} />
+        <VideoPlayer src={video.videoUrl} poster={video.coverUrl} />
         <div className="p-4 space-y-4">
           <h1 className="text-lg font-medium">{video.title}</h1>
           <div className="flex items-center gap-2 text-sm text-muted-foreground">

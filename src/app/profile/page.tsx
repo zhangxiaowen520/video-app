@@ -4,22 +4,36 @@ import { useEffect, useState } from "react";
 import ProfileHeader from "@/components/profile/ProfileHeader";
 import ProfileMenu from "@/components/profile/ProfileMenu";
 import UnauthorizedHeader from "@/components/profile/UnauthorizedHeader";
+import storageService, { UserInfo } from "@/utils/storageService";
+import { getUserInfo } from "@/api/login";
 
 export default function Profile() {
-  // TODO: 实现实际的登录状态检查
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
+  const [isVip, setIsVip] = useState(false);
+
+  const getUserInfoClick = async () => {
+    try {
+      const loggedIn = storageService.isLoggedIn();
+      setIsLoggedIn(loggedIn);
+      setIsLoading(false);
+      if (!loggedIn) {
+        return;
+      }
+      const res = await getUserInfo();
+      if (res.code === 200) {
+        setUserInfo(res.data);
+        setIsVip(res.data.memberId ? true : false);
+        storageService.setUserInfo(res.data);
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  };
 
   useEffect(() => {
-    // 模拟检查登录状态
-    const checkAuth = async () => {
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      // TODO: 实际检查登录状态的逻辑
-      setIsLoggedIn(true);
-      setIsLoading(false);
-    };
-
-    checkAuth();
+    getUserInfoClick();
   }, []);
 
   if (isLoading) {
@@ -34,7 +48,7 @@ export default function Profile() {
     <div className="flex min-h-screen flex-col pb-16">
       {isLoggedIn ? (
         <>
-          <ProfileHeader />
+          <ProfileHeader userInfo={userInfo} isVip={isVip} />
           <ProfileMenu />
         </>
       ) : (

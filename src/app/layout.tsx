@@ -7,8 +7,8 @@ import { ThemeProvider } from "@/components/ThemeProvider";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "视频应用",
-  description: "H5视频应用"
+  title: "围六影视",
+  description: "H5围六影视"
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

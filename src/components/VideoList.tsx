@@ -1,93 +1,23 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import { Video } from "@/types/video";
 import VideoCard from "./VideoCard";
 import { useInView } from "react-intersection-observer";
 import { motion } from "framer-motion";
-
-// 将mockVideos移到单独的文件中
-const mockVideos: Video[] = [
-  {
-    id: "1",
-    title: "示例视频1 - 这是一个较长的标题，用来测试多行显示效果",
-    description: "这是示例视频1的描述",
-    coverUrl: "https://picsum.photos/seed/1/800/450",
-    videoUrl: "http://clips.vorwaerts-gmbh.de/big_buck_bunny.mp4",
-    views: 1234,
-    duration: "3:45",
-    createdAt: "2024-03-15",
-    tags: ["娱乐", "音乐"]
-  },
-  {
-    id: "2",
-    title: "示例视频2",
-    description: "这是示例视频2的描述",
-    coverUrl: "https://picsum.photos/seed/2/800/450",
-    videoUrl: "http://clips.vorwaerts-gmbh.de/big_buck_bunny.mp4",
-    views: 5678,
-    duration: "2:30",
-    createdAt: "2024-03-14",
-    tags: ["科技", "教育"]
-  },
-  {
-    id: "3",
-    title: "示例视频2",
-    description: "这是示例视频2的描述",
-    coverUrl: "https://picsum.photos/seed/2/800/450",
-    videoUrl: "http://clips.vorwaerts-gmbh.de/big_buck_bunny.mp4",
-    views: 5678,
-    duration: "2:30",
-    createdAt: "2024-03-14",
-    tags: ["科技", "教育"]
-  },
-  {
-    id: "4",
-    title: "示例视频2",
-    description: "这是示例视频2的描述",
-    coverUrl: "https://picsum.photos/seed/2/800/450",
-    videoUrl: "http://clips.vorwaerts-gmbh.de/big_buck_bunny.mp4",
-    views: 5678,
-    duration: "2:30",
-    createdAt: "2024-03-14",
-    tags: ["科技", "教育"]
-  },
-  {
-    id: "5",
-    title: "示例视频2",
-    description: "这是示例视频2的描述",
-    coverUrl: "https://picsum.photos/seed/2/800/450",
-    videoUrl: "http://clips.vorwaerts-gmbh.de/big_buck_bunny.mp4",
-    views: 5678,
-    duration: "2:30",
-    createdAt: "2024-03-14",
-    tags: ["科技", "教育"]
-  }
-];
-
-// 创建一个单独的数据服务
-export const videoService = {
-  getVideos: () => mockVideos,
-  getVideoById: (id: string) => mockVideos.find((v) => v.id === id),
-  searchVideos: (query: string) =>
-    mockVideos.filter(
-      (v) =>
-        v.title.toLowerCase().includes(query.toLowerCase()) || v.description.toLowerCase().includes(query.toLowerCase())
-    )
-};
+import { getVideoPublishList } from "@/api/api";
 
 // 加载动画骨架屏组件
 const VideoCardSkeleton = () => (
   <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="p-4 space-y-2">
     {/* 视频封面骨架 */}
     <div className="relative aspect-video rounded-lg overflow-hidden bg-muted animate-pulse" />
-
     {/* 标题骨架 */}
     <div className="space-y-2">
       <div className="h-4 bg-muted rounded animate-pulse w-3/4" />
       <div className="h-4 bg-muted rounded animate-pulse w-1/2" />
     </div>
-
     {/* 信息骨架 */}
     <div className="flex items-center gap-2">
       <div className="h-3 bg-muted rounded animate-pulse w-16" />
@@ -102,39 +32,70 @@ interface VideoListProps {
 }
 
 export default function VideoList({ searchQuery }: VideoListProps) {
+  // 视频列表
   const [videos, setVideos] = useState<Video[]>([]);
+  // 是否正在加载
   const [loading, setLoading] = useState(false);
+  // 是否还有更多数据
   const [hasMore, setHasMore] = useState(true);
-  const [initialLoading, setInitialLoading] = useState(true); // 添加初始加载状态
+  // 初始加载
+  const [initialLoading, setInitialLoading] = useState(true);
+  // 当前页码
+  const [pageNum, setPageNum] = useState(1);
+  // 总页码
+  const [totalPage, setTotalPage] = useState(1);
 
   const { ref, inView } = useInView();
 
-  const loadMoreVideos = useCallback(async () => {
-    if (loading || !hasMore) return;
-
-    setLoading(true);
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-
-    const newVideos = searchQuery ? videoService.searchVideos(searchQuery) : videoService.getVideos();
-
-    setVideos((prev) => [...prev, ...newVideos]);
-    setLoading(false);
-    setInitialLoading(false);
-
-    if (videos.length > 30) {
+  // 加载数据的函数
+  const loadMoreVideos = async () => {
+    try {
+      if (loading || pageNum > totalPage) return;
+      setLoading(true);
+      const res = await getVideoPublishList({
+        pageNum: pageNum,
+        pageSize: 4,
+        keyword: searchQuery || ""
+      });
+      if (res.code === 200) {
+        const { list: newVideos, totalPage: total } = res.data;
+        setTotalPage(total);
+        if (newVideos.length > 0) {
+          setVideos((prev) => [...prev, ...newVideos]);
+        }
+        if (pageNum >= total) {
+          setHasMore(false);
+        } else {
+          setPageNum((prev) => prev + 1);
+        }
+      }
+    } catch (error) {
+      console.error("加载视频失败:", error);
       setHasMore(false);
+    } finally {
+      setLoading(false);
+      setInitialLoading(false);
     }
-  }, [loading, hasMore, searchQuery, videos.length]);
+  };
 
   useEffect(() => {
+    // 重置状态
+    setVideos([]);
+    setPageNum(1);
+    setTotalPage(1);
+    setHasMore(true);
+    setInitialLoading(true);
+    // 只在初始化或搜索词变化时加载一次
     loadMoreVideos();
-  }, [loadMoreVideos]);
+  }, [searchQuery]);
 
+  // 滚动加载的 useEffect
   useEffect(() => {
-    if (inView) {
+    // 确保不是初始加载，且在视图内并还有更多数据时才触发
+    if (!initialLoading && inView && hasMore) {
       loadMoreVideos();
     }
-  }, [inView, loadMoreVideos]);
+  }, [inView, initialLoading]);
 
   // 初始加载时显示骨架屏
   if (initialLoading) {
