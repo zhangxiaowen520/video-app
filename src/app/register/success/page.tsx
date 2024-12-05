@@ -1,5 +1,6 @@
 "use client";
 
+import { Suspense } from "react";
 import { motion } from "framer-motion";
 import { CheckCircle2, Copy, Check, Sparkles } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -11,7 +12,7 @@ interface CopyState {
   password: boolean;
 }
 
-export default function RegisterSuccessPage() {
+function RegisterSuccessContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -154,5 +155,13 @@ export default function RegisterSuccessPage() {
         </motion.div>
       </motion.div>
     </div>
+  );
+}
+
+export default function RegisterSuccessPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <RegisterSuccessContent />
+    </Suspense>
   );
 }

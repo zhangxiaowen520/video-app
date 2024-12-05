@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion";
 import { Eye, EyeOff, Check, X } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import BackButton from "@/components/BackButton";
 import storageService from "@/utils/storageService";
 import { updatePassword } from "@/api/login";
@@ -19,7 +19,7 @@ interface PasswordStrength {
 export default function PasswordPage() {
   const router = useRouter();
   const [form, setForm] = useState<API.UpdatePasswordType>({
-    username: storageService.getUserInfo()?.username || "",
+    username: "",
     oldPassword: "",
     newPassword: "",
     confirmPassword: ""
@@ -69,6 +69,7 @@ export default function PasswordPage() {
 
     try {
       setIsSaving(true);
+      form.username = storageService.getUserInfo()?.username || "";
       const data = await updatePassword(form);
       if (data.code === 200) {
         router.push("/profile/password/success");
@@ -111,6 +112,10 @@ export default function PasswordPage() {
     if (score <= 4) return "bg-blue-500";
     return "bg-green-500";
   };
+
+  useEffect(() => {
+    checkPasswordStrength(form.newPassword);
+  }, [form.newPassword]);
 
   return (
     <div className="min-h-screen pb-16">
