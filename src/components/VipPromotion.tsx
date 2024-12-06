@@ -3,6 +3,7 @@
 import { Crown, Sparkles, Star, ArrowRight } from "lucide-react";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
+import storageService from "@/utils/storageService";
 
 export default function VipPromotion() {
   const router = useRouter();
@@ -12,7 +13,14 @@ export default function VipPromotion() {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       whileHover={{ scale: 1.02 }}
-      onClick={() => router.push("/profile/vip")}
+      onClick={() => {
+        const isLogin = storageService.isLoggedIn();
+        if (isLogin) {
+          router.push("/profile/vip");
+        } else {
+          router.push("/login");
+        }
+      }}
       className="relative overflow-hidden p-4 mx-4 mb-4 rounded-xl cursor-pointer border border-yellow-500/20">
       {/* 背景渐变 */}
       <div className="absolute inset-0 bg-gradient-to-r from-yellow-500/5 via-yellow-500/10 to-yellow-500/5" />

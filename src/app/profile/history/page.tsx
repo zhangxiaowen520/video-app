@@ -1,57 +1,89 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Trash2 } from "lucide-react";
+import { History } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useState, useCallback, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useInView } from "react-intersection-observer";
 import BackButton from "@/components/BackButton";
+import { getUserHistory } from "@/api/api";
 
-// 模拟历史记录数据
-const mockHistoryList = [
-  {
-    id: "1",
-    title: "示例视频1",
-    coverUrl: "https://picsum.photos/seed/1/800/450",
-    duration: "12:34",
-    progress: 60,
-    watchedAt: "2024-03-15 12:34"
-  }
-  // ... 其他记录
-];
+// 定义历史记录类型
+interface HistoryItem {
+  id: number;
+  title: string;
+  coverUrl: string;
+  duration: string;
+  watchedAt: string;
+  progress: number;
+}
+
+// 空状态组件
+function EmptyPage() {
+  return (
+    <div className="min-h-screen flex flex-col items-center justify-center p-4">
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center">
+        <motion.div
+          initial={{ scale: 0 }}
+          animate={{ scale: 1 }}
+          transition={{ delay: 0.2 }}
+          className="inline-block rounded-full">
+          <History className="w-8 h-8 text-muted-foreground" />
+        </motion.div>
+        <h3 className="text-lg font-medium py-1">暂无观看记录</h3>
+        <p className="text-sm text-muted-foreground">您还没有观看过任何视频</p>
+      </motion.div>
+    </div>
+  );
+}
 
 export default function HistoryPage() {
   const router = useRouter();
-  const [historyList, setHistoryList] = useState(mockHistoryList);
+  const [historyList, setHistoryList] = useState<HistoryItem[]>([]);
   const [loading, setLoading] = useState(false);
+  // 当前页码
   const [hasMore, setHasMore] = useState(true);
+  // 当前页码
+  const [pageNum, setPageNum] = useState(1);
+  // 总页码
+  const [totalPage, setTotalPage] = useState(1);
   const { ref, inView } = useInView();
 
-  const loadMore = useCallback(async () => {
-    if (loading || !hasMore) return;
-
-    setLoading(true);
+  const loadMore = async () => {
     try {
-      // 模拟加载更多数据
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      setHistoryList((prev) => [...prev, ...mockHistoryList]);
-
-      // 模拟数据加载完毕
-      if (historyList.length > 30) {
-        setHasMore(false);
+      if (loading || pageNum > totalPage) return;
+      setLoading(true);
+      const res = await getUserHistory();
+      if (res.code === 200) {
+        const { list: newData, totalPage: total } = res.data;
+        setTotalPage(total);
+        if (newData.length > 0) {
+          setHistoryList((prev) => [...prev, ...newData]);
+        }
+        if (pageNum >= total) {
+          setHasMore(false);
+        } else {
+          setPageNum((prev) => prev + 1);
+        }
       }
     } finally {
       setLoading(false);
     }
-  }, [loading, hasMore, historyList.length]);
+  };
 
   // 监听滚动到底部
   useEffect(() => {
-    if (inView) {
+    if (inView && hasMore) {
       loadMore();
     }
-  }, [inView, loadMore]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [inView]);
+
+  useEffect(() => {
+    loadMore();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <div className="min-h-screen pb-16">
@@ -62,61 +94,59 @@ export default function HistoryPage() {
             <BackButton fallbackPath="/profile" />
             <h1 className="ml-2 text-lg font-medium">观看记录</h1>
           </div>
-          <button className="p-2 hover:bg-muted rounded-full text-red-500">
-            <Trash2 size={20} />
-          </button>
         </div>
       </div>
-
-      <div className="pt-16 p-4 space-y-4">
-        {historyList.map((item, index) => (
-          <motion.div
-            key={item.id + index}
-            initial={{ opacity: 0, x: -20 }}
-            animate={{
-              opacity: 1,
-              x: 0,
-              transition: { delay: index * 0.1 }
-            }}
-            className="flex gap-4 cursor-pointer"
-            onClick={() => router.push(`/video/${item.id}`)}>
-            {/* 视频封面 */}
-            <div className="relative w-40 aspect-video rounded-lg overflow-hidden">
-              <Image src={item.coverUrl} alt={item.title} fill className="object-cover" />
-              <div className="absolute bottom-0 left-0 right-0 h-1 bg-gray-600">
-                <div className="h-full bg-primary" style={{ width: `${item.progress}%` }} />
+      {historyList.length === 0 ? (
+        <EmptyPage />
+      ) : (
+        <div className="pt-16 p-4 space-y-4">
+          {historyList.map((item, index) => (
+            <motion.div
+              key={item.id + index}
+              initial={{ opacity: 0, x: -20 }}
+              animate={{
+                opacity: 1,
+                x: 0,
+                transition: { delay: index * 0.1 }
+              }}
+              className="flex gap-4 cursor-pointer"
+              onClick={() => router.push(`/video/${item.id}`)}>
+              {/* 视频封面 */}
+              <div className="relative w-40 aspect-video rounded-lg overflow-hidden">
+                <Image src={item.coverUrl} alt={item.title} fill className="object-cover" />
+                <div className="absolute bottom-0 left-0 right-0 h-1 bg-gray-600">
+                  <div className="h-full bg-primary" style={{ width: `${item.progress}%` }} />
+                </div>
               </div>
-            </div>
-
-            {/* 视频信息 */}
-            <div className="flex-1 space-y-1">
-              <h3 className="line-clamp-2 text-sm font-medium">{item.title}</h3>
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <span>{item.duration}</span>
-                <span>•</span>
-                <span>{item.watchedAt}</span>
+              {/* 视频信息 */}
+              <div className="flex-1 space-y-1">
+                <h3 className="line-clamp-2 text-sm font-medium">{item.title}</h3>
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <span>{item.duration}</span>
+                  <span>•</span>
+                  <span>{item.watchedAt}</span>
+                </div>
               </div>
+            </motion.div>
+          ))}
+          {/* 加载更多 */}
+          {hasMore && (
+            <div ref={ref} className="py-4 text-center">
+              {loading ? (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="flex justify-center items-center gap-2">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary" />
+                  <span className="text-sm text-muted-foreground">加载中...</span>
+                </motion.div>
+              ) : (
+                <span className="text-sm text-muted-foreground">上拉加���更多</span>
+              )}
             </div>
-          </motion.div>
-        ))}
-
-        {/* 加载更多 */}
-        {hasMore && (
-          <div ref={ref} className="py-4 text-center">
-            {loading ? (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="flex justify-center items-center gap-2">
-                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary" />
-                <span className="text-sm text-muted-foreground">加载中...</span>
-              </motion.div>
-            ) : (
-              <span className="text-sm text-muted-foreground">上拉加载更多</span>
-            )}
-          </div>
-        )}
-      </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

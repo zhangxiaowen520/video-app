@@ -70,9 +70,8 @@ async function fetchRequest(endpoint: string, options: RequestOptions = {}) {
     }
 
     // 处理token过期
-    if (responseData.code === 604) {
+    if (responseData.code === 401) {
       storageService.clearAll();
-      window.location.href = "/login";
       throw new Error("登录已过期，请重新登录");
     }
 

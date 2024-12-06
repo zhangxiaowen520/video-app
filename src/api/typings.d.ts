@@ -23,6 +23,19 @@ declare namespace API {
     pageSize: number;
   };
 
+  type VideoDetailType = {
+    id: number;
+    longUrl: string;
+    picture: string;
+    publishDate: string;
+    reduce: string;
+    shortUrl: string;
+    status: number;
+    tags: string;
+    title: string;
+    totalWatch: number;
+  };
+
   type UserInfoType = {
     createTime?: string;
     email?: string;

@@ -42,9 +42,8 @@ export const getUserHistory = async () => {
  * 新增浏览记录
  */
 export const addUserHistory = async (bodyData: { videoId: number }) => {
-  return await fetchRequest(`/history/add`, {
+  return await fetchRequest(`/history/add?videoId=${bodyData.videoId}`, {
     method: "POST",
-    body: bodyData
   });
 };
 
