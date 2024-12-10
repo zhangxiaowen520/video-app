@@ -5,6 +5,7 @@ import { Play } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
+import dayjs from "dayjs";
 
 interface VideoCardProps {
   video: Video;
@@ -49,9 +50,9 @@ export default function VideoCard({ video }: VideoCardProps) {
         whileHover={{ x: 5 }}>
         <h3 className="line-clamp-2 text-sm font-medium">{video.title}</h3>
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          <span>{Number(video.totalWatch) + Math.floor(Math.random() * 10000)}次观看</span>
+          <span>{video.totalWatch}次观看</span>
           <span>•</span>
-          <span>{video.publishDate || '刚刚更新'}</span>
+          <span>{dayjs(video.publishDate).format("YYYY-MM-DD HH:mm:ss")}</span>
         </div>
       </motion.div>
     </motion.div>

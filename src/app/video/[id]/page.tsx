@@ -7,16 +7,19 @@ import BackButton from "@/components/BackButton";
 import { addUserHistory, getVideoDetail } from "@/api/api";
 import { useEffect, useState } from "react";
 import storageService from "@/utils/storageService";
+import dayjs from "dayjs";
 
 // Separate client component for video content
 function VideoContent({ videoId }: { videoId: number }) {
   const [video, setVideo] = useState<API.VideoDetailType | null>(null);
+  const [isVip, setIsVip] = useState(false);
 
   const getVideoDetailClick = async () => {
     try {
       const res = await getVideoDetail({ id: videoId });
       if (res.code === 200) {
         setVideo(res.data);
+        setIsVip(storageService.isVip());
       } else {
         alert(res.message);
       }
@@ -57,14 +60,23 @@ function VideoContent({ videoId }: { videoId: number }) {
 
   return (
     <div className="pt-14">
-      <VideoPlayer src={video.longUrl} poster={video.picture} />
+      <VideoPlayer src={isVip ? video.longUrl : video.shortUrl} poster={video.picture} />
       <div className="p-4 space-y-4">
         <h1 className="text-lg font-medium">{video.title}</h1>
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <span>{video.totalWatch || 0} 次观看</span>
           <span>•</span>
-          <span>{video.publishDate || "2023-05-17 13:14:15"}</span>
+          <span>{dayjs(video.publishDate).format("YYYY-MM-DD HH:mm:ss")}</span>
         </div>
+        {video.tags && (
+          <div className="flex flex-wrap gap-2">
+            {video.tags.split(",").map((tag, index) => (
+              <span key={index} className="px-2 py-1 text-xs rounded-full bg-secondary text-secondary-foreground">
+                {tag.trim()}
+              </span>
+            ))}
+          </div>
+        )}
         <p className="text-sm text-muted-foreground">{video.reduce}</p>
       </div>
       <VipPromotion />

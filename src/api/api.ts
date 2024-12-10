@@ -32,9 +32,10 @@ export const getMemberList = async () => {
 /**
  * 获取用户浏览记录
  */
-export const getUserHistory = async () => {
+export const getUserHistory = async (bodyData: { pageNum: number; pageSize: number }) => {
   return await fetchRequest(`/history/currenList`, {
-    method: "GET"
+    method: "GET",
+    body: bodyData
   });
 };
 
@@ -43,7 +44,7 @@ export const getUserHistory = async () => {
  */
 export const addUserHistory = async (bodyData: { videoId: number }) => {
   return await fetchRequest(`/history/add?videoId=${bodyData.videoId}`, {
-    method: "POST",
+    method: "POST"
   });
 };
 

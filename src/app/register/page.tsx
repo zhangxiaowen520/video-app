@@ -262,7 +262,7 @@ export default function RegisterPage() {
               className="space-y-2">
               <label className="text-sm text-muted-foreground flex items-center gap-2">
                 <User size={16} className="text-primary" />
-                账号
+                账号（唯一，请保存好）
               </label>
               <input
                 type="text"

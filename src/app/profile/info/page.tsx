@@ -100,7 +100,7 @@ export default function ProfileInfoPage() {
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
           {/* 账号字段 - 只读 */}
           <div className="space-y-2">
-            <label className="text-sm font-medium">账号</label>
+            <label className="text-sm font-medium">账号（唯一，请保存好）</label>
             <div className="flex items-center gap-2">
               <input
                 type="text"

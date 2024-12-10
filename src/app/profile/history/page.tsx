@@ -8,15 +8,20 @@ import { useState, useEffect } from "react";
 import { useInView } from "react-intersection-observer";
 import BackButton from "@/components/BackButton";
 import { getUserHistory } from "@/api/api";
+import dayjs from "dayjs";
 
 // 定义历史记录类型
 interface HistoryItem {
+  createDate: string;
   id: number;
-  title: string;
-  coverUrl: string;
-  duration: string;
-  watchedAt: string;
-  progress: number;
+  nickname: string | null;
+  userId: number;
+  userName: string;
+  username: string | null;
+  videoId: number;
+  videoName: string;
+  videoReduce: string;
+  picture: string;
 }
 
 // 空状态组件
@@ -52,9 +57,10 @@ export default function HistoryPage() {
 
   const loadMore = async () => {
     try {
-      if (loading || pageNum > totalPage) return;
+      if (loading || !hasMore) return;
+      setHasMore(true);
       setLoading(true);
-      const res = await getUserHistory();
+      const res = await getUserHistory({ pageNum: pageNum, pageSize: 5 });
       if (res.code === 200) {
         const { list: newData, totalPage: total } = res.data;
         setTotalPage(total);
@@ -113,18 +119,19 @@ export default function HistoryPage() {
               onClick={() => router.push(`/video/${item.id}`)}>
               {/* 视频封面 */}
               <div className="relative w-40 aspect-video rounded-lg overflow-hidden">
-                <Image src={item.coverUrl} alt={item.title} fill className="object-cover" />
+                <Image src={item.picture || ""} alt={item.videoName} fill className="object-cover" />
                 <div className="absolute bottom-0 left-0 right-0 h-1 bg-gray-600">
-                  <div className="h-full bg-primary" style={{ width: `${item.progress}%` }} />
+                  <div className="h-full bg-primary" style={{ width: `50%` }} />
                 </div>
               </div>
               {/* 视频信息 */}
               <div className="flex-1 space-y-1">
-                <h3 className="line-clamp-2 text-sm font-medium">{item.title}</h3>
+                <h3 className="line-clamp-2 text-sm font-medium">{item.videoName}</h3>
+                <div className="flex items-center gap-2 text-xs text-muted-foreground max-w-[200px]">
+                  <span className="line-clamp-2">{item.videoReduce}</span>
+                </div>
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <span>{item.duration}</span>
-                  <span>•</span>
-                  <span>{item.watchedAt}</span>
+                  {dayjs(item.createDate).format("YYYY-MM-DD HH:mm:ss")}
                 </div>
               </div>
             </motion.div>
@@ -141,7 +148,7 @@ export default function HistoryPage() {
                   <span className="text-sm text-muted-foreground">加载中...</span>
                 </motion.div>
               ) : (
-                <span className="text-sm text-muted-foreground">上拉加���更多</span>
+                <span className="text-sm text-muted-foreground">上拉加载更多</span>
               )}
             </div>
           )}

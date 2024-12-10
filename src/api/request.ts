@@ -66,6 +66,7 @@ async function fetchRequest(endpoint: string, options: RequestOptions = {}) {
     const responseData = await response.json();
 
     if (!response.ok) {
+      alert("服务器异常，请稍后重试！");
       throw new Error(responseData.message || "请求失败");
     }
 

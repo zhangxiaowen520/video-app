@@ -37,7 +37,14 @@ export default function VideoPlayer({ src, poster }: VideoPlayerProps) {
             ? ["play-large", "play", "progress", "current-time", "mute", "volume", "fullscreen"]
             : ["play-large", "play", "progress", "current-time", "mute", "volume"],
           hideControls: true,
-          keyboard: { focused: true, global: true }
+          keyboard: { focused: true, global: true },
+          fullscreen: {
+            enabled: isVip,
+            fallback: true,
+            iosNative: false
+          },
+          clickToPlay: true,
+          autoplay: false
         });
 
         playerRef.current = player;
@@ -102,7 +109,14 @@ export default function VideoPlayer({ src, poster }: VideoPlayerProps) {
 
       {/* 视频播放器 */}
       <div className={`w-full aspect-video ${!isReady ? "bg-muted" : ""}`}>
-        <video ref={videoRef} poster={poster} className="w-full h-full">
+        <video
+          ref={videoRef}
+          poster={poster}
+          className="w-full h-full"
+          playsInline
+          webkit-playsinline="true"
+          autoPlay={false}
+          preload="metadata">
           <source src={src} type="video/mp4" />
         </video>
       </div>
@@ -128,7 +142,13 @@ export default function VideoPlayer({ src, poster }: VideoPlayerProps) {
                 <motion.button
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
-                  onClick={() => router.push("/profile/vip")}
+                  onClick={() => {
+                    if (storageService.isLoggedIn()) {
+                      router.push("/profile/vip");
+                    } else {
+                      router.push("/login");
+                    }
+                  }}
                   className="w-full py-1.5 text-sm rounded-lg bg-gradient-to-r from-yellow-500 to-yellow-600 text-white">
                   立即开通会员
                 </motion.button>
