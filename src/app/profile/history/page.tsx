@@ -52,7 +52,6 @@ export default function HistoryPage() {
   // 当前页码
   const [pageNum, setPageNum] = useState(1);
   // 总页码
-  const [totalPage, setTotalPage] = useState(1);
   const { ref, inView } = useInView();
 
   const loadMore = async () => {
@@ -63,7 +62,6 @@ export default function HistoryPage() {
       const res = await getUserHistory({ pageNum: pageNum, pageSize: 5 });
       if (res.code === 200) {
         const { list: newData, totalPage: total } = res.data;
-        setTotalPage(total);
         if (newData.length > 0) {
           setHistoryList((prev) => [...prev, ...newData]);
         }
